@@ -1,0 +1,21 @@
+---
+- hosts: localhost
+  vars_files:
+    - /home/lostjackal/scripts/brocade_var.yml
+#  vars_prompt:
+#    - name: switch_pwd
+#      prompt: Enter switch password
+#      private: no
+#
+#    - name: ftp_pwd
+#      prompt: Enter FTP password
+#      private: no
+
+  tasks:
+  - name: Run Brocade python script in ROTK
+    command: /usr/bin/python3 /home/lostjackal/scripts/brocade.py {{ switch_pwd }} {{ ftp_pwd }}
+    register: rotk_out
+    changed_when: false
+
+  - debug: msg="{{ rotk_out.stdout }}"
+  - debug: msg="{{ rotk_out.stderr }}"

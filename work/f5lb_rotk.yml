@@ -1,0 +1,25 @@
+---
+- hosts: localhost
+  vars_files:
+    - /f5lb_var.yml
+  vars_prompt:
+    - name: f5lb_int
+      prompt: Enter f5 interface (e.g. 1.0, 1.1, 1.2)
+      private: no
+
+    - name: host_ip
+      prompt: Enter Host IP address (e.g. 202.55.76.114)
+      private: no
+
+    - name: host_port
+      prompt: Enter Host Port (e.g 443)
+      private: no
+
+  tasks:
+  - name: Run f5lb python script in ROTK
+    command: /usr/bin/python3 /f5lb.py {{ f5lb_int }} {{ host_ip }} {{ host_port }} {{ f5lb_pwd }}
+    register: rotk_out
+    changed_when: false
+
+  - debug: msg="{{ rotk_out.stdout }}"
+  - debug: msg="{{ rotk_out.stderr }}"

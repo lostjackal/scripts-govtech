@@ -1,0 +1,50 @@
+---
+- hosts: 127.0.0.1
+  connection: local
+  gather_facts: false
+
+  vars:
+    nsx_manager: dc3nsxmgr.dc.mgmt
+    nsx_subdir: api/v1/fabric/virtual-machines
+    nsx_username: nsxadmin
+    nsx_password: K1ngK0ng999!
+    validate_certs: No
+
+  vars_prompt:
+    - name: _vmname
+      prompt: Enter the VM name to search
+      private: no
+
+  tasks:
+  - name: GET VMs
+    uri:
+      url: "https://{{ nsx_manager }}/{{ nsx_subdir }}"
+      method: GET
+      status_code: [200,201]
+      return_content: true
+      headers:
+        Accept: "application/json"
+        Content-Type: "application/json"
+      force_basic_auth: yes
+      validate_certs: no
+      user: "{{ nsx_username }}"
+      password: "{{ nsx_password }}"
+    register: results_get_vm
+
+#  - name: Copy result_get_vm to file for inspect
+#    copy:
+#      content: "{{ results_get_vm }}"
+#      dest: "/home/lostjackal/scripts/output.json"
+
+  - name: "Find Searched VM Names"
+    set_fact:
+      #vm_name: "{{ results_get_vm.json.results | map(attribute='display_name') | list | sort }}"
+      vm_name: "{{( results_get_vm.json.results | selectattr('display_name', 'match', _vmname) | list)}}"
+    register: vmnames_out
+  
+  - set_face:
+      id_out: "{{ vmnames_out.external_id }}"
+
+  - debug: msg="{{ vmnames_out }}"
+  - debug: msg="{{ id_out }}"
+    

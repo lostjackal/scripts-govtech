@@ -1,0 +1,59 @@
+## WRITES SECURITY TAGS
+##
+## _nsx_manager
+## _validate_certs
+## _request_headers
+##
+## _hostname: vmtest # VM hostname
+## _tags: ['internal','rh','tower'] # test tags
+## _scope: ['DC2'] # test scope
+---
+- name: GET all VMs
+  uri:
+    url: "https://{{ _nsx_manager }}/api/v1/fabric/virtual-machines"
+    method: GET
+    body_format: json
+    status_code: [200,201]
+    return_content: true
+    headers: "{{ _request_headers }}"
+    validate_certs: "{{ _validate_certs }}"
+  register: results_get_vm
+- name: SET tags
+  set_fact:
+    tags: []
+#    vm_body: "{{( results_get_vm.json.results | selectattr('display_name', 'match', _hostname) | list ).0}}"
+- name: DEFINE tags body
+  set_fact:
+    tags: "{{ tags + [{'scope': _scope, 'tag': tag_item}] }}"
+  with_items:
+  - "{{ _tags| sort }}"
+  loop_control:
+    loop_var: tag_item
+- name: Check for VM Match
+  set_fact:
+    vm_body: "{{( results_get_vm.json.results | selectattr('display_name', 'match', _hostname) | list ) }}"
+- name: "WRITE tags - {{_hostname }}"
+  uri:
+    url: "https://{{ _nsx_manager }}/api/v1/fabric/virtual-machines?action=update_tags"
+      #"https://{{ _nsx_manager }}/policy/api/v1/infra/tags/tag-operations/win-vm-update"
+    method: POST
+    body_format: json
+    status_code: [200,201,204]
+    return_content: true
+    headers: "{{ _request_headers }}"
+    validate_certs: "{{ _validate_certs }}"
+    body:
+      external_id: "{{ vm_body[0].external_id }}"
+      tags: "{{ tags }}"    
+  register: results_write_tags
+  when: (vm_body | length > 0)
+- set_fact:
+     nonexistent_vms: "{{ nonexistent_vms + [_hostname] }}"
+  when: (vm_body | length == 0)
+- set_fact:
+     successful_vms: "{{ successful_vms + [_hostname] }}"
+  when: (vm_body | length > 0)
+- debug:
+    var: succesful_vms
+- debug:
+    var: nonexistent_vms
